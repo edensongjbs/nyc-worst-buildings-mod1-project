@@ -8,4 +8,6 @@ gem 'sqlite3'
 gem 'pry'
 gem 'httparty'
 gem 'tty-prompt'
+gem 'terminal-table'
+
 

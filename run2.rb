@@ -59,8 +59,12 @@ def create_buildings_and_hpd_violations(results) #iterates through standardized 
     end
 end
 
-url = "https://data.cityofnewyork.us/resource/wvxf-dwi5.json"
-response = HTTParty.get(url)
+def get_worst_buildings(num) # 
+    Building.sort_worst.take(num)
+end
 
-binding.pry
-0
+#  url = "https://data.cityofnewyork.us/resource/wvxf-dwi5.json"
+#  response = HTTParty.get(url)
+
+#  binding.pry
+#  0
