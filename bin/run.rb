@@ -65,3 +65,9 @@ end
 def get_worst_buildings(num) # 
     Building.sort_worst.take(num)
 end
+
+# url = "https://data.cityofnewyork.us/resource/wvxf-dwi5.json"
+# response = HTTParty.get(url)
+
+# binding.pry
+# 0
