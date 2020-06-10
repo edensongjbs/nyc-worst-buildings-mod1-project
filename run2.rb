@@ -48,6 +48,19 @@ def create_hpd_violation_from_result_and_building(result, building)
     building.hpd_violations << violation
 end
 
+def create_dob_violation_from_result_and_building(result, building)
+    violation = DobViolation.create(
+      violation_category: result["violation_category"],
+      violation_type: result["violations_type"],
+      issue_date: result["issue_date"],
+      disposition_date: result["disposition_date"],
+      disposition_comments: result["disposition_comments"],
+      dob_violation_num: result["violation_number"],
+      building_id: building.id
+    )
+    building.dob_violations << violation
+end
+
 def create_buildings_and_hpd_violations(results) #iterates through standardized results and adds new building
     # when it encounters a new blocklot that's not already in Building.all
     results.each do |result|
@@ -59,8 +72,30 @@ def create_buildings_and_hpd_violations(results) #iterates through standardized 
     end
 end
 
-url = "https://data.cityofnewyork.us/resource/wvxf-dwi5.json"
-response = HTTParty.get(url)
+def boro_block_lot(bblstring) # returns a hash
+    bblhash = {}
+    bbl[:boro] = bblstring[0]
+    bbl[:block] = bblstring[1,5]
+    bbl[:lot] = bblstring[6,4]
+    return bblhash
+end
 
-binding.pry
-0
+def create_dob_violations_from_building(building) # requires that the initial user prefs are stored at global scope or we build this into a class
+    bbl = boro_block_lot(building.bbl)
+    results=get_dob_records_from_open_data(bbl.boro, bbl.block, bbl.lot, start_date, end_date)
+    results.each {|result| create_dob_violation_from_result_and_building(result, building)}
+end
+
+def create_dob_violations(worst_buildings)
+    worst_buildings.each { |building| create_dob_violations_from_building(building) }
+end
+
+def get_worst_buildings(num) # 
+    Building.sort_worst.take(num)
+end
+
+# url = "https://data.cityofnewyork.us/resource/wvxf-dwi5.json"
+# response = HTTParty.get(url)
+
+# binding.pry
+# 0
