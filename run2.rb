@@ -48,6 +48,19 @@ def create_hpd_violation_from_result_and_building(result, building)
     building.hpd_violations << violation
 end
 
+def create_dob_violation_from_result_and_building(result, building)
+    violation = DobViolation.create(
+      violation_category: result["violation_category"],
+      violation_type: result["violations_type"],
+      issue_date: result["issue_date"],
+      disposition_date: result["disposition_date"],
+      disposition_comments: result["disposition_comments"],
+      dob_violation_num: result["violation_number"],
+      building_id: building.id
+    )
+    building.dob_violations << violation
+end
+
 def create_buildings_and_hpd_violations(results) #iterates through standardized results and adds new building
     # when it encounters a new blocklot that's not already in Building.all
     results.each do |result|

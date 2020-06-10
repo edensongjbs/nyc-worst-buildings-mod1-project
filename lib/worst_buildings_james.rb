@@ -1,0 +1,167 @@
+class WorstBuildings
+
+    $prompt = TTY::Prompt.new
+    attr_accessor :zip_codes, :start_date, :end_date, :string_of_zips, :num_listings
+    def initialize
+        @zip_codes=[]
+    end
+
+    def get_zips
+        zips=[]
+        $prompt.collect do
+            zips << key(:zip).ask('Enter Zip Code:', required: true)  
+            while $prompt.yes?("Continue?")
+                @zips << key(:zip).ask('Enter Zip Code:')
+            end
+        end
+        @zip_codes=zips
+        build_zip_string
+    end
+
+    def get_num_listings
+        @num_listings = $prompt.ask("How many buildings?:",default: '20').to_i
+    end
+
+    def build_zip_string
+        @string_of_zips = @zip_codes.map { |zip| "'" + zip + "'" }.join(",")
+    end
+
+    def get_dates
+        @start_date = $prompt.ask("Enter Start Date:",default: '2020-01-01') + "T00:00:00" #Defaults to start of 2020
+        @end_date = $prompt.ask("Enter End Date:", default:'2021-01-01') + "T00:00:00" #Defaults to end of 2020
+    end
+
+    def build_url(url)
+        url += "?$where=zip in (#{@string_of_zips})" 
+        url += " AND novissueddate between '#{@start_date}' and '#{@end_date}'"
+        url += "&$limit=100000"
+    end
+
+    def add_leading_zeros(string, total_chars)
+        num_zeros = total_chars-string.length
+        if num_zeros > 0
+            num_zeros.times {string = '0'+string}
+        end
+        return string
+    end
+    
+    def standardize_identifier(results) # iterate through array
+        # and create new key standard_id that from the borough block and lot #'s
+        # 10 digits total (1 for boro, 5 for block, 4 for lot)
+        results.each do |result|
+            boro = result["boroid"]
+            block = add_leading_zeros(result["block"], 5)
+            lot=result["lot"] = add_leading_zeros(result["lot"], 4)
+            result["bbl"]=boro+block+lot
+        end  
+    end
+    
+    def find_building_from_result(result)
+        Building.all.find {|building| building.bbl==result["bbl"]}
+    end
+    
+    def create_building_from_result(result) # needs more parameters
+        Building.create(
+            bbl: result["bbl"],
+            house_number: result["housenumber"],
+            street_name: result["streetname"],
+            zip: result["zip"],
+            building_class: result["class"],
+            story: result["story"],
+        )
+    end
+    
+    def create_hpd_violation_from_result_and_building(result, building)
+        violation = HpdViolation.create(
+          novdescription: result["novdescription"],
+          issue_date: result["novissuedate"],
+          status_id: result["currentstatusid"],
+          status: result["currentstatus"],
+          novid: result["novid"],
+          violation_num: result["violationid"],
+          building_id: building.id
+        )
+        building.hpd_violations << violation
+    end
+    
+    def create_dob_violation_from_result_and_building(result, building)
+        violation = DobViolation.create(
+          violation_category: result["violation_category"],
+          violation_type: result["violations_type"],
+          issue_date: result["issue_date"],
+          disposition_date: result["disposition_date"],
+          disposition_comments: result["disposition_comments"],
+          dob_violation_num: result["violation_number"],
+          building_id: building.id
+        )
+        building.dob_violations << violation
+    end
+    
+    def create_buildings_and_hpd_violations(results) #iterates through standardized results and adds new building
+        # when it encounters a new blocklot that's not already in Building.all
+        results.each do |result|
+            found_building=find_building_from_result(result)
+            if !found_building
+                found_building=create_building_from_result(result)
+            end
+            create_hpd_violation_from_result_and_building(result, found_building)
+        end
+    end
+    
+    def boro_block_lot(bblstring="1000000000") # returns a hash
+        bblhash = {}
+        bblhash[:boro] = bblstring[0]
+        bblhash[:block] = bblstring[1,5]
+        bblhash[:lot] = bblstring[6,4]
+        return bblhash
+    end
+    
+    def create_dob_violations_from_building(building)
+        bbl = boro_block_lot(building.bbl)
+        url = build_dob_url("https://data.cityofnewyork.us/resource/3h2n-5cm9.json", bbl)
+        # binding.pry
+        results=results = HTTParty.get(url) 
+        results.each {|result| create_dob_violation_from_result_and_building(result, building)}
+    end
+    
+    def create_dob_violations(worst_buildings)
+        worst_buildings.each { |building| create_dob_violations_from_building(building) }
+    end
+    
+    def get_worst_buildings 
+        Building.sort_worst.take(@num_listings)
+    end
+
+    def build_dob_url(url, bbl)
+        dob_start = @start_date.split("T")[0].delete("-")
+        dob_end= @end_date.split("T")[0].delete("-")
+        url += "?$where=issue_date between '#{dob_start}' and '#{dob_end}'&boro=#{bbl[:boro]}&block=#{bbl[:block]}&lot=0#{bbl[:lot]}"
+        # url += " AND issue_date between '#{dob_start}' and '#{dob_end}'"
+        # url += "&$limit=100000"
+    end
+
+    def run
+        #violation_type = $prompt.select("Choose by violation type:", %w(HPD DOB))
+        Building.destroy_all
+        HpdViolation.destroy_all
+        get_zips
+        get_dates
+
+        url=build_url("https://data.cityofnewyork.us/resource/wvxf-dwi5.json") 
+        
+        results = HTTParty.get(url)   #.sort_by {|v| v["novissueddate"]}
+        
+        create_buildings_and_hpd_violations(results)
+
+        get_num_listings
+
+        worst_buildings=get_worst_buildings
+
+        create_dob_violations(worst_buildings)
+ 
+        binding.pry
+        0
+    end
+
+end
+
