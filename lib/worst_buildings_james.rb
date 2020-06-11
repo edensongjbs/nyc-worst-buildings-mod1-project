@@ -9,13 +9,31 @@ class WorstBuildings
         @zip_codes=[]
     end
 
+    # def get_zips
+    #     zips=[]
+    #     $prompt.collect do
+    #         zips << key(:zip).ask('Enter Zip Code:', required: true)  
+    #         while $prompt.yes?("Add More?")
+    #             zips << key(:zip).ask('Enter Zip Code:')
+    #         end
+    #     end
+    #     @zip_codes=zips
+    #     build_zip_string
+    # end
+
+    def zip_prompt
+        q = $prompt.ask('Enter Zip Code:') do |q|
+            q.required true
+            q.validate(/\d{5}/, 'Invalid zip code')
+        end
+        q
+    end
+    
     def get_zips
         zips=[]
-        $prompt.collect do
-            zips << key(:zip).ask('Enter Zip Code:', required: true)  
-            while $prompt.yes?("Add More?")
-                zips << key(:zip).ask('Enter Zip Code:')
-            end
+        zips << zip_prompt
+        while $prompt.yes?("Add Another Zip Code?")
+            zips << zip_prompt
         end
         @zip_codes=zips
         build_zip_string
@@ -159,30 +177,64 @@ class WorstBuildings
             index == worst_buildings.length - 1 ? break : table.add_separator
         end
         puts table
+        return table
     end
 
-    def violation_info(worst_buildings)
+    def violation_info(worst_buildings, table)
         more_info = $prompt.select("Do you want more information about a building?", %w(Yes No))
         while more_info == "Yes"
-            building_num = $prompt.ask("Enter The Number of The Building:") 
-            index = building_num.to_i - 1
-            make_violation_table(worst_buildings[index].hpd_violations_ignore_closed(@ignore_closed), building_num)
-            more_info = $prompt.select("Do you want more information about a building?", %w(Yes No))    
+            building_num = $prompt.ask("Enter The Number of The Building:").to_i
+            while building_num > worst_buildings.length or  building_num < 1
+                print "Please enter a valid building number."
+                building_num = $prompt.ask(" Enter The Number of The Building:").to_i
+            end
+            index = building_num - 1
+            selected_building = worst_buildings[index]
+            make_violation_table(selected_building)
+            more_info = $prompt.select("Do you want more information about a building?", %w(Yes No)) 
+            puts table if more_info == "Yes"   
         end
     end
     
-    def make_violation_table(violations, building_num)
+    # def make_violation_table(violations, building_num)
+    #     table = Terminal::Table.new 
+    #     table.title = "All Violations For Building ##{building_num}"
+    #     table.headings = ['Issue Date',"ViolationID","Status"]
+    
+    
+    #     violations.sort_by{|violation| violation.issue_date}.each_with_index do |violation,index|
+    #         table.add_row  [violation.issue_date[0..9], violation.violation_num, violation.status]
+    #         index == violations.length - 1 ? break : table.add_separator
+    #     end
+    #     puts table
+    # end
+
+    def make_violation_table(building) 
         table = Terminal::Table.new 
-        table.title = "All Violations For Building ##{building_num}"
-        table.headings = ['Issue Date',"ViolationID","Status"]
+        table.style = {:width => 125}
+        table.title = "#{building.address}"#: HPD Violations"
+        table.headings = ['Issue Date',"ViolationID","Status","Description"]
+
+        hviolations = building.hpd_violations_ignore_closed(@ignore_closed)
+        dviolations = building.dob_violations_ignore_closed(@ignore_closed)
     
-    
-        violations.sort_by{|violation| violation.issue_date}.each_with_index do |violation,index|
-            table.add_row  [violation.issue_date[0..9], violation.violation_num, violation.status]
-            index == violations.length - 1 ? break : table.add_separator
+        hviolations.sort_by{|violation| violation.issue_date}.each_with_index do |violation,index|
+            table.add_row  [violation.issue_date[0..9], violation.violation_num, violation.status[0..25],violation.novdescription[0..60]+"..."]
+            index == hviolations.length - 1 ? break : table.add_separator
+        end
+
+        if building.dob_violations.count > 0
+            table.add_separator
+            table.add_row ["","","",""]
+            table.add_separator
+            dviolations.sort_by{|violation| violation.issue_date}.each_with_index do |violation,index|
+                table.add_row  [violation.get_date, violation.dob_violation_num, violation.violation_category[0..25],violation.description[0..60]+"..."]
+                index == dviolations.length - 1 ? break : table.add_separator
+            end
         end
         puts table
     end
+
 
     def run
         #violation_type = $prompt.select("Choose by violation type:", %w(HPD DOB))
@@ -207,9 +259,9 @@ class WorstBuildings
         puts "Finding Accompanying DOB Violations..."
         create_dob_violations(worst_buildings)
 
-        make_building_table(worst_buildings)
+        table = make_building_table(worst_buildings)
 
-        violation_info(worst_buildings)
+        violation_info(worst_buildings, table)
  
         binding.pry
         0
