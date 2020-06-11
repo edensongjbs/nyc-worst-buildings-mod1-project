@@ -106,6 +106,9 @@ class WorstBuildings
             found_building=find_building_from_result(result)
             if !found_building
                 found_building=create_building_from_result(result)
+                if !found_building.bbl
+                    found_building.update_attribute(:bbl, "1000000000")
+                end
             end
             create_hpd_violation_from_result_and_building(result, found_building)
         end
@@ -152,7 +155,7 @@ class WorstBuildings
         table.headings = ['Ranking',"HPD\nViolations","DOB\nViolations" ,'Address', 'Borough', 'Zip Code',"Block #", "Lot #"]
     
         worst_buildings.each_with_index do |building,index|
-            table.add_row  [index+1,building.hpd_violations_ignore_closed(@ignore_closed).count,building.dob_violations.count, building.address ,building.borough,building.zip,building.block,building.lot]
+            table.add_row  [index+1,building.hpd_violations_ignore_closed(@ignore_closed).count,building.dob_violations_ignore_closed(@ignore_closed).count, building.address ,building.borough,building.zip,building.block,building.lot]
             index == worst_buildings.length - 1 ? break : table.add_separator
         end
         puts table
