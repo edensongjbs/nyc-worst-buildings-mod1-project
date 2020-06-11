@@ -152,7 +152,7 @@ class WorstBuildings
         table.headings = ['Ranking',"HPD\nViolations","DOB\nViolations" ,'Address', 'Borough', 'Zip Code',"Block #", "Lot #"]
     
         worst_buildings.each_with_index do |building,index|
-            table.add_row  [index+1,building.hpd_violations.count,building.dob_violations.count, building.address ,building.borough,building.zip,building.block,building.lot]
+            table.add_row  [index+1,building.hpd_violations_ignore_closed(@ignore_closed).count,building.dob_violations.count, building.address ,building.borough,building.zip,building.block,building.lot]
             index == worst_buildings.length - 1 ? break : table.add_separator
         end
         puts table
@@ -163,7 +163,7 @@ class WorstBuildings
         while more_info == "Yes"
             building_num = $prompt.ask("Enter The Number of The Building:") 
             index = building_num.to_i - 1
-            make_violation_table(worst_buildings[index].hpd_violations, building_num)
+            make_violation_table(worst_buildings[index].hpd_violations_ignore_closed(@ignore_closed), building_num)
             more_info = $prompt.select("Do you want more information about a building?", %w(Yes No))    
         end
     end
@@ -196,7 +196,7 @@ class WorstBuildings
         create_buildings_and_hpd_violations(results)
 
         get_num_listings
-        get_include_closed_violations
+        @ignore_closed=$prompt.yes?("Ignore Closed Violations?")
 
         worst_buildings=get_worst_buildings
 

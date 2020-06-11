@@ -1,16 +1,16 @@
 class Building < ActiveRecord::Base
     has_many :dob_violations
     has_many :hpd_violations
+    @@HPD_IGNORE_STATUS = ["3", "4", "9", "19", "36"]
 
     def self.sort_worst(ic=false)
             worst=Building.all.sort{|building1, building2| building1.hpd_violations_ignore_closed(ic).count <=> building2.hpd_violations_ignore_closed(ic).count}.reverse
             # worstBuilding.all.sort{|building1, building2| building1.hpd_violations.count <=> building2.hpd_violations.count}.reverse
     end
 
-    def hpd_violations_ignore_closed(ic=false)
-        IGNORE_STATUS = ["3", "4", "9", "19", "36"]
+    def hpd_violations_ignore_closed(ic=false)  
         if ic
-            violations=hpd_violations.reject {|violation| IGNORE_STATUS.include?(violation.status_id})
+            violations=hpd_violations.reject {|violation| @@HPD_IGNORE_STATUS.include?(violation.status_id)}
         else
             violations=self.hpd_violations
         end
