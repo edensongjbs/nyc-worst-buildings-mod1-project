@@ -1,6 +1,9 @@
 class WorstBuildings
 
     $prompt = TTY::Prompt.new
+    $prompt = TTY::Prompt.new
+    $table = Terminal::Table.new
+    $a = Artii::Base.new :font => 'slant'
     attr_accessor :zip_codes, :start_date, :end_date, :string_of_zips, :num_listings
     def initialize
         @zip_codes=[]
@@ -11,7 +14,7 @@ class WorstBuildings
         $prompt.collect do
             zips << key(:zip).ask('Enter Zip Code:', required: true)  
             while $prompt.yes?("Continue?")
-                @zips << key(:zip).ask('Enter Zip Code:')
+                zips << key(:zip).ask('Enter Zip Code:')
             end
         end
         @zip_codes=zips
@@ -74,7 +77,7 @@ class WorstBuildings
     def create_hpd_violation_from_result_and_building(result, building)
         violation = HpdViolation.create(
           novdescription: result["novdescription"],
-          issue_date: result["novissuedate"],
+          issue_date: result["novissueddate"],
           status_id: result["currentstatusid"],
           status: result["currentstatus"],
           novid: result["novid"],
@@ -108,7 +111,10 @@ class WorstBuildings
         end
     end
     
-    def boro_block_lot(bblstring="1000000000") # returns a hash
+    def boro_block_lot(bblstring) # returns a hash
+        if !bblstring
+            bblstring="1000000000"
+        end
         bblhash = {}
         bblhash[:boro] = bblstring[0]
         bblhash[:block] = bblstring[1,5]
@@ -140,10 +146,46 @@ class WorstBuildings
         # url += "&$limit=100000"
     end
 
+    def make_building_table(worst_buildings)
+        table = Terminal::Table.new     
+        table.title = "Top #{worst_buildings.count} Worst Buildings" 
+        table.headings = ['Ranking',"HPD\nViolations","DOB\nViolations" ,'Address', 'Borough', 'Zip Code',"Block #", "Lot #"]
+    
+        worst_buildings.each_with_index do |building,index|
+            table.add_row  [index+1,building.hpd_violations.count,building.dob_violations.count, building.address ,building.borough,building.zip,building.block,building.lot]
+            index == worst_buildings.length - 1 ? break : table.add_separator
+        end
+        puts table
+    end
+
+    def violation_info(worst_buildings)
+        more_info = $prompt.select("Do you want more information about a building?", %w(Yes No))
+        while more_info == "Yes"
+            building_num = $prompt.ask("Enter The Number of The Building:") 
+            index = building_num.to_i - 1
+            make_violation_table(worst_buildings[index].hpd_violations, building_num)
+            more_info = $prompt.select("Do you want more information about a building?", %w(Yes No))    
+        end
+    end
+    
+    def make_violation_table(violations, building_num)
+        table = Terminal::Table.new 
+        table.title = "All Violations For Building ##{building_num}"
+        table.headings = ['Issue Date',"ViolationID","Status"]
+    
+    
+        violations.sort_by{|violation| violation.issue_date}.each_with_index do |violation,index|
+            table.add_row  [violation.issue_date[0..9], violation.violation_num, violation.status]
+            index == violations.length - 1 ? break : table.add_separator
+        end
+        puts table
+    end
+
     def run
         #violation_type = $prompt.select("Choose by violation type:", %w(HPD DOB))
         Building.destroy_all
         HpdViolation.destroy_all
+        puts $a.asciify("Find NYC's Worst Buildings")
         get_zips
         get_dates
 
@@ -158,6 +200,10 @@ class WorstBuildings
         worst_buildings=get_worst_buildings
 
         create_dob_violations(worst_buildings)
+
+        make_building_table(worst_buildings)
+
+        violation_info(worst_buildings)
  
         binding.pry
         0

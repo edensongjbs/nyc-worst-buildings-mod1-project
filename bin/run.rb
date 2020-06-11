@@ -72,3 +72,6 @@ require_relative '../config/environment'
 
 # binding.pry
 # 0
+
+app = WorstBuildings.new
+app.run
