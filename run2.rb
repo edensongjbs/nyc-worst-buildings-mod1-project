@@ -38,7 +38,7 @@ end
 def create_hpd_violation_from_result_and_building(result, building)
     violation = HpdViolation.create(
       novdescription: result["novdescription"],
-      issue_date: result["novissuedate"],
+      issue_date: result["novissueddate"],
       status_id: result["currentstatusid"],
       status: result["currentstatus"],
       novid: result["novid"],

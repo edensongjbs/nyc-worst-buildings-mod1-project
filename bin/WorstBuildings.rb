@@ -6,7 +6,6 @@ require_relative '../run2.rb'
     $table = Terminal::Table.new
 
 def run
-    #violation_type = $prompt.select("Choose by violation type:", %w(HPD DOB))
     zip_codes = []
     $prompt.collect do
         zip_codes << key(:zip).ask('Enter Zip Code:', required: true)  
@@ -56,14 +55,16 @@ def makeTable(worstBuildings)
         table.add_row  [rank,violations,0,address ,borough,zip,block,lot]
         index == worstBuildings.length - 1 ? break : table.add_separator
     end
+    
     puts table
 
     more_info = $prompt.select("Do you want more information about a building?", %w(Yes No))
-    building_num = $prompt.ask("Enter The Number of The Building:") if more_info == "Yes"
-    index = building_num.to_i - 1
-    #binding.pry
-    violationTable(worstBuildings[building_num.to_i - 1].hpd_violations, building_num)
-    #binding.pry    
+    while more_info == "Yes"
+        building_num = $prompt.ask("Enter The Number of The Building:") 
+        index = building_num.to_i - 1
+        violationTable(worstBuildings[building_num.to_i - 1].hpd_violations, building_num)
+        more_info = $prompt.select("Do you want more information about a building?", %w(Yes No))    
+    end
 end
 
 def violationTable(violations, building_num)
@@ -72,15 +73,12 @@ def violationTable(violations, building_num)
     table.headings = ['Issue Date',"ViolationID","Status"]
 
     violations.each_with_index do |violation,index|
-        table.add_row  [nil, violation.violation_num, violation.status]
+        table.add_row  [violation.issue_date[0..9], violation.violation_num, violation.status]
         index == violations.length - 1 ? break : table.add_separator
     end
     puts table
 
 end
-
-
-#binding.pry
 
 makeTable(run)
 
