@@ -10,6 +10,7 @@ gem 'httparty'
 gem 'tty-prompt'
 gem 'terminal-table'
 gem 'artii'
+gem 'csv'
 
 
 

@@ -167,59 +167,61 @@ class WorstBuildings
         # url += "&$limit=100000"
     end
 
+    def build_csv(row,filename)
+        time = Time.new.to_s
+        CSV.open("./csv/#{time[11..18]}#{filename}.csv", "a") do |csv|
+            csv << row
+        end
+    end
+
     def make_building_table(worst_buildings)
-        table = Terminal::Table.new     
+        table = Terminal::Table.new
+        table.style = {:width => 125}
         table.title = "Top #{worst_buildings.count} Worst Buildings" 
         table.headings = ['Ranking',"HPD\nViolations","DOB\nViolations" ,'Address', 'Borough', 'Zip Code',"Block #", "Lot #"]
     
         worst_buildings.each_with_index do |building,index|
-            table.add_row  [index+1,building.hpd_violations_ignore_closed(@ignore_closed).count,building.dob_violations_ignore_closed(@ignore_closed).count, building.address ,building.borough,building.zip,building.block,building.lot]
+            row = [index+1,building.hpd_violations.count,building.dob_violations.count, building.address ,building.borough,building.zip,building.block,building.lot]
+            table.add_row row
+            build_csv(row,"_#{worst_buildings.length}_worstbuildings")
             index == worst_buildings.length - 1 ? break : table.add_separator
         end
         puts table
+        #violation_info(worst_buildings,table)
         return table
     end
 
-    def violation_info(worst_buildings, table)
+    def violation_info(worstBuildings,table)
         more_info = $prompt.select("Do you want more information about a building?", %w(Yes No))
         while more_info == "Yes"
             building_num = $prompt.ask("Enter The Number of The Building:").to_i
-            while building_num > worst_buildings.length or  building_num < 1
+            #building_num = building_num.to_i
+            while building_num > worstBuildings.length or  building_num < 1
                 print "Please enter a valid building number."
                 building_num = $prompt.ask(" Enter The Number of The Building:").to_i
             end
             index = building_num - 1
-            selected_building = worst_buildings[index]
-            make_violation_table(selected_building)
-            more_info = $prompt.select("Do you want more information about a building?", %w(Yes No)) 
-            puts table if more_info == "Yes"   
+            selected_building = worstBuildings[index]
+            make_violations_table(selected_building,building_num)
+            more_info = $prompt.select("Do you want more information about a building?", %w(Yes No))
+            puts table if more_info == "Yes"    
         end
     end
     
-    # def make_violation_table(violations, building_num)
-    #     table = Terminal::Table.new 
-    #     table.title = "All Violations For Building ##{building_num}"
-    #     table.headings = ['Issue Date',"ViolationID","Status"]
-    
-    
-    #     violations.sort_by{|violation| violation.issue_date}.each_with_index do |violation,index|
-    #         table.add_row  [violation.issue_date[0..9], violation.violation_num, violation.status]
-    #         index == violations.length - 1 ? break : table.add_separator
-    #     end
-    #     puts table
-    # end
-
-    def make_violation_table(building) 
+    def make_violations_table(building,building_num) 
         table = Terminal::Table.new 
         table.style = {:width => 125}
         table.title = "#{building.address}"#: HPD Violations"
         table.headings = ['Issue Date',"ViolationID","Status","Description"]
 
-        hviolations = building.hpd_violations_ignore_closed(@ignore_closed)
-        dviolations = building.dob_violations_ignore_closed(@ignore_closed)
+        hviolations = building.hpd_violations
+        dviolations = building.dob_violations
     
         hviolations.sort_by{|violation| violation.issue_date}.each_with_index do |violation,index|
-            table.add_row  [violation.issue_date[0..9], violation.violation_num, violation.status[0..25],violation.novdescription[0..60]+"..."]
+            row = [violation.issue_date[0..9], violation.violation_num, violation.status[0..25],violation.novdescription[0..60]+"..."]
+            csvrow = [violation.issue_date[0..9], violation.violation_num, violation.status,violation.novdescription]
+            table.add_row row
+            build_csv(csvrow,"_#{building_num}_hpdViolations")
             index == hviolations.length - 1 ? break : table.add_separator
         end
 
@@ -228,12 +230,16 @@ class WorstBuildings
             table.add_row ["","","",""]
             table.add_separator
             dviolations.sort_by{|violation| violation.issue_date}.each_with_index do |violation,index|
-                table.add_row  [violation.get_date, violation.dob_violation_num, violation.violation_category[0..25],violation.description[0..60]+"..."]
+                row = [violation.get_date, violation.dob_violation_num, violation.violation_category[0..25],violation.description[0..60]+"..."]
+                table.add_row row
+                build_csv(row,"_#{building_num.to_s}_dobViolations")
                 index == dviolations.length - 1 ? break : table.add_separator
             end
         end
         puts table
     end
+
+
 
 
     def run
@@ -263,8 +269,8 @@ class WorstBuildings
 
         violation_info(worst_buildings, table)
  
-        binding.pry
-        0
+        # binding.pry
+        # 0
     end
 
 end
