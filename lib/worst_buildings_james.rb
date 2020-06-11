@@ -13,7 +13,7 @@ class WorstBuildings
         zips=[]
         $prompt.collect do
             zips << key(:zip).ask('Enter Zip Code:', required: true)  
-            while $prompt.yes?("Continue?")
+            while $prompt.yes?("Add More?")
                 zips << key(:zip).ask('Enter Zip Code:')
             end
         end
@@ -22,7 +22,7 @@ class WorstBuildings
     end
 
     def get_num_listings
-        @num_listings = $prompt.ask("How many buildings?:",default: '20').to_i
+        @num_listings = $prompt.ask("How many worst buildings would you like to display?:",default: '20').to_i
     end
 
     def build_zip_string
@@ -90,10 +90,10 @@ class WorstBuildings
     def create_dob_violation_from_result_and_building(result, building)
         violation = DobViolation.create(
           violation_category: result["violation_category"],
-          violation_type: result["violations_type"],
+          violation_type: result["violation_type"],
           issue_date: result["issue_date"],
           disposition_date: result["disposition_date"],
-          disposition_comments: result["disposition_comments"],
+          disposition_comments: result["description"],
           dob_violation_num: result["violation_number"],
           building_id: building.id
         )
@@ -183,23 +183,25 @@ class WorstBuildings
 
     def run
         #violation_type = $prompt.select("Choose by violation type:", %w(HPD DOB))
+        puts $a.asciify("Find NYC's Worst Buildings")
+        puts "Clearing old records..."
         Building.destroy_all
         HpdViolation.destroy_all
-        puts $a.asciify("Find NYC's Worst Buildings")
+        
         get_zips
         get_dates
 
         url=build_url("https://data.cityofnewyork.us/resource/wvxf-dwi5.json") 
-        
+        puts "Querying HPD Open Data..."
         results = HTTParty.get(url)   #.sort_by {|v| v["novissueddate"]}
-        
+        puts "Populating Local Database..."
         create_buildings_and_hpd_violations(results)
-
+        puts "Found #{Building.all.count} buildings and #{HpdViolation.all.count} violations that matched your search."
         get_num_listings
         @ignore_closed=$prompt.yes?("Ignore Closed Violations?")
-
+        puts "Sorting Worst Buildings..."
         worst_buildings=get_worst_buildings
-
+        puts "Finding Accompanying DOB Violations..."
         create_dob_violations(worst_buildings)
 
         make_building_table(worst_buildings)
