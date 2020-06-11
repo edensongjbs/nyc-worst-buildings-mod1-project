@@ -4,7 +4,7 @@ class WorstBuildings
     $prompt = TTY::Prompt.new
     $table = Terminal::Table.new
     $a = Artii::Base.new :font => 'slant'
-    attr_accessor :zip_codes, :start_date, :end_date, :string_of_zips, :num_listings
+    attr_accessor :zip_codes, :start_date, :end_date, :string_of_zips, :num_listings, :ignore_closed
     def initialize
         @zip_codes=[]
     end
@@ -135,7 +135,7 @@ class WorstBuildings
     end
     
     def get_worst_buildings 
-        Building.sort_worst.take(@num_listings)
+        Building.sort_worst(@ignore_closed).take(@num_listings)
     end
 
     def build_dob_url(url, bbl)
@@ -196,6 +196,7 @@ class WorstBuildings
         create_buildings_and_hpd_violations(results)
 
         get_num_listings
+        get_include_closed_violations
 
         worst_buildings=get_worst_buildings
 
