@@ -9,5 +9,7 @@ gem 'pry'
 gem 'httparty'
 gem 'tty-prompt'
 gem 'terminal-table'
+gem 'artii'
+
 
 

@@ -4,6 +4,8 @@ require_relative '../run2.rb'
 
     $prompt = TTY::Prompt.new
     $table = Terminal::Table.new
+    $a = Artii::Base.new :font => 'slant'
+
 
 def run
     zip_codes = []
@@ -37,50 +39,50 @@ def run
     worst
 end
 
-def makeTable(worstBuildings)
-    boroughs = ["", "Manhattan","Bronx","Brooklyn","Queens","Staten Island"]
+def makeBuildingTable(worstBuildings)
     table = Terminal::Table.new     
     table.title = "Top #{worstBuildings.count} Worst Buildings" 
     table.headings = ['Ranking',"HPD\nViolations","DOB\nViolations" ,'Address', 'Borough', 'Zip Code',"Block #", "Lot #"]
 
     worstBuildings.each_with_index do |building,index|
-        rank = index + 1
-        address = building.house_number + " " +building.street_name
-        borough = boroughs[building.bbl[0].to_i]
-        zip = building.zip
-        block = building.bbl[1..5]
-        lot = building.bbl[6..]
-        violations = building.hpd_violations.count
-
-        table.add_row  [rank,violations,0,address ,borough,zip,block,lot]
+        table.add_row  [index+1,building.hpd_violations.count,0, building.address ,building.borough,building.zip,building.block,building.lot]
         index == worstBuildings.length - 1 ? break : table.add_separator
     end
-    
     puts table
+    violationInfo(worstBuildings)
+end
 
+
+def violationInfo(worstBuildings)
     more_info = $prompt.select("Do you want more information about a building?", %w(Yes No))
     while more_info == "Yes"
         building_num = $prompt.ask("Enter The Number of The Building:") 
         index = building_num.to_i - 1
-        violationTable(worstBuildings[building_num.to_i - 1].hpd_violations, building_num)
+        makeViolationTable(worstBuildings[index].hpd_violations, building_num)
         more_info = $prompt.select("Do you want more information about a building?", %w(Yes No))    
     end
 end
 
-def violationTable(violations, building_num)
+def makeViolationTable(violations, building_num)
     table = Terminal::Table.new 
     table.title = "All Violations For Building ##{building_num}"
     table.headings = ['Issue Date',"ViolationID","Status"]
 
-    violations.each_with_index do |violation,index|
+
+    violations.sort_by{|violation| violation.issue_date}.each_with_index do |violation,index|
         table.add_row  [violation.issue_date[0..9], violation.violation_num, violation.status]
         index == violations.length - 1 ? break : table.add_separator
     end
     puts table
-
 end
 
-makeTable(run)
+def runner
+    puts $a.asciify("Find The Worst Buildings")
+    makeBuildingTable(run)
+end
+
+runner
+
 
 
 
