@@ -10,7 +10,8 @@ bundle install
 
 rake db:migrate
 
-Use the following command to run the program
+Use the following command to run the program:  
+
 ruby bin/run.rb
 
 
