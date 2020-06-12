@@ -6,12 +6,10 @@ WorstBuildingsNYC is a Ruby CLI application designed with tenant advocacy in min
 
 Begin installation by cloning or downloading this repository.  In your terminal, navigate to the project's directory and run the following commands:
 
-bundle install
-
+bundle install 
 rake db:migrate
 
 Use the following command to run the program:  
-
 ruby bin/run.rb
 
 
