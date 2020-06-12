@@ -9,18 +9,6 @@ class WorstBuildings
         @zip_codes=[]
     end
 
-    # def get_zips
-    #     zips=[]
-    #     $prompt.collect do
-    #         zips << key(:zip).ask('Enter Zip Code:', required: true)  
-    #         while $prompt.yes?("Add More?")
-    #             zips << key(:zip).ask('Enter Zip Code:')
-    #         end
-    #     end
-    #     @zip_codes=zips
-    #     build_zip_string
-    # end
-
     def zip_prompt
         q = $prompt.ask('Enter Zip Code:') do |q|
             q.required true
@@ -146,7 +134,6 @@ class WorstBuildings
     def create_dob_violations_from_building(building)
         bbl = boro_block_lot(building.bbl)
         url = build_dob_url("https://data.cityofnewyork.us/resource/3h2n-5cm9.json", bbl)
-        # binding.pry
         results=results = HTTParty.get(url) 
         results.each {|result| create_dob_violation_from_result_and_building(result, building)}
     end
@@ -163,8 +150,6 @@ class WorstBuildings
         dob_start = @start_date.split("T")[0].delete("-")
         dob_end= @end_date.split("T")[0].delete("-")
         url += "?$where=issue_date between '#{dob_start}' and '#{dob_end}'&boro=#{bbl[:boro]}&block=#{bbl[:block]}&lot=0#{bbl[:lot]}"
-        # url += " AND issue_date between '#{dob_start}' and '#{dob_end}'"
-        # url += "&$limit=100000"
     end
 
     def build_csv(row,filename)
@@ -187,7 +172,6 @@ class WorstBuildings
             index == worst_buildings.length - 1 ? break : table.add_separator
         end
         puts table
-        #violation_info(worst_buildings,table)
         return table
     end
 
@@ -195,7 +179,6 @@ class WorstBuildings
         more_info = $prompt.select("Do you want more information about a building?", %w(Yes No))
         while more_info == "Yes"
             building_num = $prompt.ask("Enter The Number of The Building:").to_i
-            #building_num = building_num.to_i
             while building_num > worstBuildings.length or  building_num < 1
                 print "Please enter a valid building number."
                 building_num = $prompt.ask(" Enter The Number of The Building:").to_i
@@ -243,7 +226,6 @@ class WorstBuildings
 
 
     def run
-        #violation_type = $prompt.select("Choose by violation type:", %w(HPD DOB))
         puts $a.asciify("Find NYC's Worst Buildings")
         puts "Clearing old records..."
         Building.destroy_all
@@ -269,8 +251,6 @@ class WorstBuildings
 
         violation_info(worst_buildings, table)
  
-        # binding.pry
-        # 0
     end
 
 end
