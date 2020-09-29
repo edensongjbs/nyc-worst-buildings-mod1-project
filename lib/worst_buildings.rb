@@ -226,6 +226,7 @@ class WorstBuildings
 
 
     def run
+        system("clear") || system("cls")
         puts $a.asciify("Find NYC's Worst Buildings")
         puts "Clearing old records..."
         Building.destroy_all
