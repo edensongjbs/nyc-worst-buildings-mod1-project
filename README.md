@@ -2,7 +2,7 @@
 
 WorstBuildingsNYC is a Ruby CLI application designed with tenant advocacy in mind. The program helps users to easily access information about distressed and poorly maintained buildings throughout NYC.  The interface allows the user to enter some basic search parameters, specifically zip code(s) and a date range, and will return a ranking of the worst buildings in those zip codes based upon the number of total filed HPD (Housing Preservation & Development) Maintenance Code Violations during that time period.  Additionally, the results will include any DOB (Department of Buildings) violations for those same buildings during that specified time period.  The user can opt to view additional information about the individual violations and all results will be exported as a .csv file. 
 
-[Watch the Demo Video on YouTube](https://www.youtube.com/watch?v=FUBDR-wefTs&feature=youtu.be)
+[Watch the Demo Video on YouTube](https://www.youtube.com/watch?v=kAR0NaGZgCQ)
 
 # Installation
 
